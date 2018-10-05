@@ -38,9 +38,13 @@ ncks -O -v x,y,mapping $gfile ${name}_xy.nc
 
 echo $(ncks -M -m $gfile | grep -E -i "^global attribute [0-9]+: proj4" | cut -f 11- -d ' ') > ${name}.proj4
 
+border_width=2
+./create_PISM_OceanKillFile.py ${name}_xy.nc  $border_width  ${name}_ocean_kill_file.nc
+
 cp ${name}.griddes $outfolder
 cp ${name}_xy.nc $outfolder
 cp ${name}.proj4 $outfolder
+cp ${name}_ocean_kill_file.nc $outfolder
 
-rm ${name}.griddes ${name}_xy.nc ${name}.proj4 ${name}.nc
+rm ${name}.griddes ${name}_xy.nc ${name}.proj4 ${name}.nc ${name}_ocean_kill_file.nc
 
