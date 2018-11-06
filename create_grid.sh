@@ -21,11 +21,8 @@ mkdir -p $outfolder
 name=pismr_${dom}_${dx}km
 gfile=${name}.nc
 
-./create_mask.py ll_${gfile} "${proj4}" $x0 $x1 $y0 $y1 $dx
-
 rm -f $gfile
-./generate_cdo_readable_grid.sh ll_$gfile  $gfile
-rm ll_$gfile
+./create_projection_from_proj4.py ${gfile} "${proj4}" $x0 $x1 $y0 $y1 $dx
 
 #PISM Bin dir need to be set in PATH
 nc2cdo.py $gfile
@@ -34,7 +31,7 @@ nc2cdo.py $gfile
 cdo griddes $gfile > ${name}.griddes
 
 #extract x,y
-ncks -O -v x,y,mapping $gfile ${name}_xy.nc
+ncks -O -v x,y,lon,lat,mapping $gfile ${name}_xy.nc
 
 echo $(ncks -M -m $gfile | grep -E -i "^global attribute [0-9]+: proj4" | cut -f 11- -d ' ') > ${name}.proj4
 

@@ -28,8 +28,6 @@ def   create_PISM_OceanKillFile(in_file, dx ,out_file):
 
     src.close()
 
-
-
     topg = dst.createVariable("topg","f4",("y","x"), fill_value=-9.e9)
     topg.units = "m"
     topg.coordinates = "lat lon"

@@ -46,15 +46,21 @@ def create_projection (filename, proj4, xLim, yLim, dx, opts={}):
     elif "Stereographic" in name:
         name = 'polar_stereographic'
         mapping.grid_mapping_name = name ;
-	lat0 = inSpatialRef.GetProjParm('latitude_of_origin') ;
-	#Dirty fix...
-	if lat0 > 0:
-		lat0 = 90;	
-	else:
-		lat0 = -90;	
+        lat0 = inSpatialRef.GetProjParm('latitude_of_origin') ;
+        #Dirty fix...
+        if lat0 > 0:
+            lat0 = 90;
+        else:
+            lat0 = -90;
         mapping.latitude_of_projection_origin = lat0 ;
         mapping.standard_parallel = inSpatialRef.GetProjParm('latitude_of_origin') ;
         mapping.straight_vertical_longitude_from_pole = inSpatialRef.GetProjParm('central_meridian') ;
+
+    elif "Lambert_Azimuthal_Equal_Area" in name:
+        name = 'lambert_azimuthal_equal_area'
+        mapping.grid_mapping_name = name ;
+        mapping.longitude_of_projection_origin = inSpatialRef.GetProjParm('longitude_of_center') ;
+        mapping.latitude_of_projection_origin = inSpatialRef.GetProjParm('latitude_of_center') ;
 
     outfile.proj4 = proj4
 
@@ -65,40 +71,29 @@ def create_projection (filename, proj4, xLim, yLim, dx, opts={}):
     fvx.units = "m"                              
     fvy.units = "m"   
 
-    lon = outfile.createVariable("lon","f4",("y","x"), fill_value=-9.e9)
-    lat = outfile.createVariable("lat","f4",("y","x"), fill_value=-9.e9)
+    lon = outfile.createVariable("lon","f4",("y","x"))
+    lat = outfile.createVariable("lat","f4",("y","x"))
+    mask = outfile.createVariable("mask","f4",("y","x"), fill_value=-9.e9)
 
     lon.units = "degrees"
     lon.long_name = "longitude"
     lon.standard_name = "longitude"
-    lon.bounds = "grid_corner_lon" 
     lon._CoordinateAxisType = "Lon"
     lon.grid_mapping = "mapping"
 
     lat.units = "degrees"
     lat.long_name = "latitude"
     lat.standard_name = "latitude"
-    lat.bounds = "grid_corner_lat"
     lat._CoordinateAxisType = "Lat"
     lat.grid_mapping = "mapping"
 
+    mask.units = "1"
+    mask.coordinates = "lon lat"
+    mask.grid_mapping = "mapping"
+
     lon[:] = out[:,:,0]
     lat[:] = out[:,:,1]
-    xoff=(x[1]-x[0])/2.
-    yoff=(y[1]-y[0])/2.
-    addx = [ xoff, xoff,-xoff,-xoff]
-    addy = [-yoff, yoff, yoff,-yoff]
-
-    grid_corner_lat = outfile.createVariable("grid_corner_lat","f4",("y", "x", "grid_corners"), fill_value=-9.e9)
-    grid_corner_lon = outfile.createVariable("grid_corner_lon","f4",("y", "x", "grid_corners"), fill_value=-9.e9)
-
-    grid_corner_lat.units = "degrees"
-    grid_corner_lon.units = "degrees"
-
-    for i in xrange(4):
-        corner_temp = np.array(coordTransform.TransformPoints(np.array((xx + addx[i], yy + addy[i])).transpose())).reshape((len(x),len(y),3))
-        grid_corner_lon[:,:,i] = corner_temp[:, :, 0]
-        grid_corner_lat[:,:,i] = corner_temp[:, :, 1]
+    mask[:] = 0.0
 
     outfile.close()
 #################
