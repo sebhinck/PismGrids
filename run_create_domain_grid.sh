@@ -2,7 +2,7 @@
 
 dom=$1
 dx=$2
-outfolder=${3:-"/home/ollie/shinck/projects/PISM/grids"}
+outfolder=${3:-"/scratch/users/shinck/IceModelling/grids"}
 
 module purge
 module load pism/dev_intel_impi netcdf-tools cdo gdal python
@@ -64,6 +64,22 @@ case "$dom" in
     xmax=$(echo "$xmax_center + (0.5 * $dx)" | bc)
     ymin=$(echo "$ymin_center - (0.5 * $dx)" | bc)
     ymax=$(echo "$ymax_center + (0.5 * $dx)" | bc)
+  ;;
+  LIS_Evan)
+    #The false easting and northing and the ranges of x and y correspond to the corner points at 5km resolution:
+    #   west_latitude=25, west_longitude=-135, east_latitude=85, east_longitude=3
+    proj4="+proj=laea +lon_0=-94 +lat_0=60 +units=m +x_0=4104009.407173712 +y_0=2625682.633840935"
+    
+    #At 5km resolution the cell centers of the corner cells are at
+    #xmin_center=0
+    #xmax_center=7750
+    #ymin_center=0
+    #ymax_center=5950
+
+    xmin=-2.5
+    xmax=7752.5
+    ymin=-2.5
+    ymax=5952.5
   ;;
   *)
     echo "Domain \"${dom}\" not defined!"
