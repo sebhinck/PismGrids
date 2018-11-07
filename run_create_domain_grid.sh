@@ -2,7 +2,7 @@
 
 dom=$1
 dx=$2
-outfolder=${3:-"/scratch/users/shinck/IceModelling/grids"}
+outfolder=${3:-"/home/ollie/shinck/projects/PISM/grids"}
 
 module purge
 module load pism/dev_intel_impi netcdf-tools cdo gdal python
