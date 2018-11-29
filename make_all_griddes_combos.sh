@@ -14,12 +14,14 @@ case *$HOSTNAME* in
 esac
 
 for dom in nhem greenland greenland_handbook laurentide; do
-       for res in 5 10 20 40; do
+      for res in 5 10 20 40; do
               ./run_create_domain_grid.sh $dom $res ${POOL_DIR_pism}/grids
       done
 done
 
-echo "NOTE: antarctica resolutions are slightly different, these are not yet made by default."
-echo "NOTE: if you are using antarctica and need a griddes file at a resolution that isnt"
-echo "NOTE: available, please contact the current pism_pool maintainer (Paul Gierz)"
+for dom in antarctica; do
+      for res in 1 2 4 8 16 32; do
+              ./run_create_domain_grid.sh $dom $res ${POOL_DIR_pism}/grids
+      done
+done
 
