@@ -5,7 +5,7 @@ dx=$2
 outfolder=${3:-"/home/ollie/shinck/projects/PISM/grids"}
 
 module purge
-module load netcdf-tools cdo gdal python
+module load netcdf-tools cdo gdal python centoslibs
 
 case "$dom" in
   nhem)
