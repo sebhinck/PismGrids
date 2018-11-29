@@ -97,7 +97,12 @@ Ny=$(echo "($Ly/$dx)" | bc)
 
 echo "-> Grid: (${Lx}km x ${Ly}km) = (${Nx} x ${Ny}) @ ${dx}km resolution"
 
-func_call="./create_grid.sh $dx $dom $xmin $xmax $ymin $ymax \"$proj4\" $outfolder"
+name=${dom}_${dx}km
+gfile=${outfolder}/${dom}/${name}.nc
+
+mkdir -p $outfolder/${dom}
+
+func_call="./create_projection_from_proj4.py ${gfile} \"${proj4}\" $xmin $xmax $ymin $ymax $dx"
 echo $func_call
 echo "#####################################"
 echo

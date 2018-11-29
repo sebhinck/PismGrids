@@ -14,21 +14,20 @@ def create_projection (filename, proj4, xLim, yLim, dx, opts={}):
     outSpatialRef = osr.SpatialReference() # target projection
     outSpatialRef.ImportFromEPSG(4326) # WGS 1984
     coordTransform = osr.CoordinateTransformation(inSpatialRef, outSpatialRef) # create converter
-    print "##################"
-    print inSpatialRef.ExportToPrettyWkt() # display information on orig projection              
-    print "##################"
+    #print "##################"
+    #print inSpatialRef.ExportToPrettyWkt() # display information on orig projection              
+    #print "##################"
      
     x=np.arange(((xLim[0] + dx/2.)*1000.), (xLim[1]*1000.), (dx*1000.))
     y=np.arange(((yLim[0] + dx/2.)*1000.), (yLim[1]*1000.), (dx*1000.))
 
-    xx = np.expand_dims(x,axis=0).repeat(len(y),axis=0).reshape(len(x)*len(y)) #.transpose()
+    xx = np.expand_dims(x,axis=0).repeat(len(y),axis=0).reshape(len(x)*len(y))
     yy = np.expand_dims(y,axis=0).repeat(len(x),axis=0).transpose().reshape(len(x)*len(y))  
 
     out=np.array(coordTransform.TransformPoints(np.array((xx,yy)).transpose())).reshape((len(x),len(y),3))
     outfile=nc.Dataset(filename, "w", format='NETCDF3_64BIT')                                   
     fdx = outfile.createDimension("x", len(x))                                                            
     fdy = outfile.createDimension("y", len(y))                                                            
-    fdy = outfile.createDimension("grid_corners", 4)      
 
     mapping = outfile.createVariable("mapping","f4")               
     mapping.ellipsoid = inSpatialRef.GetAttrValue('GEOGCS').replace(" ", "") ;
@@ -68,32 +67,45 @@ def create_projection (filename, proj4, xLim, yLim, dx, opts={}):
     fvy = outfile.createVariable("y","f4",("y",))
     fvx[:] = x                                   
     fvy[:] = y                                   
-    fvx.units = "m"                              
-    fvy.units = "m"   
+    fvx.units = "m"
+    fvx.axis = "X"
+    fvy.units = "m"
+    fvy.axis = "Y"
 
     lon = outfile.createVariable("lon","f4",("y","x"))
     lat = outfile.createVariable("lat","f4",("y","x"))
-    mask = outfile.createVariable("mask","f4",("y","x"), fill_value=-9.e9)
+    ok_topg = outfile.createVariable("ocean_kill_topg","f4",("y","x"))
+    ok_thk  = outfile.createVariable("ocean_kill_thk" ,"f4",("y","x"))
 
-    lon.units = "degrees"
-    lon.long_name = "longitude"
+    lon.units = "degreesE"
+    lon.long_name = "Longitude"
     lon.standard_name = "longitude"
-    lon._CoordinateAxisType = "Lon"
-    lon.grid_mapping = "mapping"
 
-    lat.units = "degrees"
-    lat.long_name = "latitude"
+    lat.units = "degreesN"
+    lat.long_name = "Latitude"
     lat.standard_name = "latitude"
-    lat._CoordinateAxisType = "Lat"
-    lat.grid_mapping = "mapping"
 
-    mask.units = "1"
-    mask.coordinates = "lon lat"
-    mask.grid_mapping = "mapping"
+    ok_topg.units = "m"
+    ok_topg.standard_name = "bedrock_surface_elevation"
+    ok_topg.coordinates  = "lon lat"
+    ok_topg.grid_mapping = "mapping"
+
+    ok_thk.units = "m"
+    ok_thk.standard_name = "land_ice_thickness"
+    ok_thk.coordinates  = "lon lat"
+    ok_thk.grid_mapping = "mapping"
 
     lon[:] = out[:,:,0]
     lat[:] = out[:,:,1]
-    mask[:] = 0.0
+
+    dx_margin = 1
+
+    thk_arr = np.ones(ok_thk.shape) * 100.
+    thk_arr[(np.arange(0,dx_margin), np.arange(-dx_margin, 0)), :] = 0.0
+    thk_arr[:, (np.arange(0,dx_margin), np.arange(-dx_margin, 0))] = 0.0
+
+    ok_topg[:] = -1
+    ok_thk[:]  = thk_arr[:,:]
 
     outfile.close()
 #################
