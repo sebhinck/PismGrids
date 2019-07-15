@@ -65,6 +65,19 @@ case "$dom" in
     ymin=$(echo "$ymin_center - (0.5 * $dx)" | bc)
     ymax=$(echo "$ymax_center + (0.5 * $dx)" | bc)
   ;;
+  himalaya)
+    #Asia North Lambert Conformal Conic (ESRI:102027)
+    proj4="+proj=lcc +lat_1=15 +lat_2=65 +lat_0=30 +lon_0=95 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs"
+    xmin_center=-3000
+    xmax_center=1200
+    ymin_center=-800
+    ymax_center=2000
+
+    xmin=$(echo "$xmin_center - (0.5 * $dx)" | bc)
+    xmax=$(echo "$xmax_center + (0.5 * $dx)" | bc)
+    ymin=$(echo "$ymin_center - (0.5 * $dx)" | bc)
+    ymax=$(echo "$ymax_center + (0.5 * $dx)" | bc)
+  ;;
   LIS_Evan)
     #The false easting and northing and the ranges of x and y correspond to the corner points at 5km resolution:
     #   west_latitude=25, west_longitude=-135, east_latitude=85, east_longitude=3
