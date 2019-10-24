@@ -86,7 +86,7 @@ def create_projection (filename, proj4, xLim, yLim, dx, opts={}):
     lat.standard_name = "latitude"
 
     ok_topg.units = "m"
-    ok_topg.standard_name = "bedrock_surface_elevation"
+    ok_topg.standard_name = "bedrock_altitude"
     ok_topg.coordinates  = "lon lat"
     ok_topg.grid_mapping = "mapping"
 
