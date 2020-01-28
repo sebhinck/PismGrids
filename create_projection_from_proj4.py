@@ -74,8 +74,9 @@ def create_projection (filename, proj4, xLim, yLim, dx, opts={}):
 
     lon = outfile.createVariable("lon","f4",("y","x"))
     lat = outfile.createVariable("lat","f4",("y","x"))
-    ok_topg = outfile.createVariable("ocean_kill_topg","f4",("y","x"))
-    ok_thk  = outfile.createVariable("ocean_kill_thk" ,"f4",("y","x"))
+    ok_topg = outfile.createVariable("ocean_kill_topg" ,"f4",("y","x"))
+    ok_thk  = outfile.createVariable("ocean_kill_thk"  ,"f4",("y","x"))
+    ok_mask = outfile.createVariable("ocean_kill_mask" ,"i",("y","x"))
 
     lon.units = "degreesE"
     lon.long_name = "Longitude"
@@ -95,6 +96,11 @@ def create_projection (filename, proj4, xLim, yLim, dx, opts={}):
     ok_thk.coordinates  = "lon lat"
     ok_thk.grid_mapping = "mapping"
 
+    ok_mask.units = "1"
+    ok_mask.standard_name = "land_ice_area_fraction_retreat"
+    ok_mask.coordinates  = "lon lat"
+    ok_mask.grid_mapping = "mapping"
+
     lon[:] = out[:,:,0]
     lat[:] = out[:,:,1]
 
@@ -104,8 +110,13 @@ def create_projection (filename, proj4, xLim, yLim, dx, opts={}):
     thk_arr[(np.arange(0,dx_margin), np.arange(-dx_margin, 0)), :] = 0.0
     thk_arr[:, (np.arange(0,dx_margin), np.arange(-dx_margin, 0))] = 0.0
 
+    mask_arr = np.ones(ok_thk.shape)
+    mask_arr[(np.arange(0,dx_margin), np.arange(-dx_margin, 0)), :] = 0
+    mask_arr[:, (np.arange(0,dx_margin), np.arange(-dx_margin, 0))] = 0.0
+
     ok_topg[:] = -1
     ok_thk[:]  = thk_arr[:,:]
+    ok_mask[:] = mask_arr[:,:]
 
     outfile.close()
 #################
