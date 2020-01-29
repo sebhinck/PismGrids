@@ -112,7 +112,7 @@ def create_projection (filename, proj4, xLim, yLim, dx, opts={}):
 
     mask_arr = np.ones(ok_thk.shape)
     mask_arr[(np.arange(0,dx_margin), np.arange(-dx_margin, 0)), :] = 0
-    mask_arr[:, (np.arange(0,dx_margin), np.arange(-dx_margin, 0))] = 0.0
+    mask_arr[:, (np.arange(0,dx_margin), np.arange(-dx_margin, 0))] = 0
 
     ok_topg[:] = -1
     ok_thk[:]  = thk_arr[:,:]
