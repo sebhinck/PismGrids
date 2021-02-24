@@ -2,6 +2,7 @@
 
 import osr
 import netCDF4 as nc
+import xarray as xr
 import numpy as np  
 import sys          
 import getopt       
@@ -14,111 +15,111 @@ def create_projection (filename, proj4, xLim, yLim, dx, opts={}):
     outSpatialRef = osr.SpatialReference() # target projection
     outSpatialRef.ImportFromEPSG(4326) # WGS 1984
     coordTransform = osr.CoordinateTransformation(inSpatialRef, outSpatialRef) # create converter
-    #print "##################"
-    #print inSpatialRef.ExportToPrettyWkt() # display information on orig projection              
-    #print "##################"
-     
+
     x=np.arange(((xLim[0] + dx/2.)*1000.), (xLim[1]*1000.), (dx*1000.))
     y=np.arange(((yLim[0] + dx/2.)*1000.), (yLim[1]*1000.), (dx*1000.))
 
-    xx = np.expand_dims(x,axis=0).repeat(len(y),axis=0).reshape(len(x)*len(y))
-    yy = np.expand_dims(y,axis=0).repeat(len(x),axis=0).transpose().reshape(len(x)*len(y))  
+    xa = xr.DataArray(data=np.zeros([len(x), len(y)]), coords = [('x',x), ('y', y)])
 
-    out=np.array(coordTransform.TransformPoints(np.array((xx,yy)).transpose())).reshape((len(x),len(y),3))
-    outfile=nc.Dataset(filename, "w", format='NETCDF3_64BIT')                                   
-    fdx = outfile.createDimension("x", len(x))                                                            
-    fdy = outfile.createDimension("y", len(y))                                                            
+    def ctransform(a):
+        yi, xi = xr.broadcast(a.y, a.x)
 
-    mapping = outfile.createVariable("mapping","f4")               
-    mapping.ellipsoid = inSpatialRef.GetAttrValue('GEOGCS').replace(" ", "") ;
-    mapping.false_easting = inSpatialRef.GetProjParm('false_easting') ;
-    mapping.false_northing = inSpatialRef.GetProjParm('false_northing') ;
-    
+        def f(x,y,z=0):
+            res = coordTransform.TransformPoint(x,y,z)
+
+            return np.stack(res, axis=-1)
+
+        res = xr.apply_ufunc(f, xi, yi, vectorize=True, output_core_dims= [["q"]])
+
+        lon = res.isel(q=0)
+        lat = res.isel(q=1)
+
+        return lon, lat
+
+    lon, lat = ctransform(xa)
+
+    lon.attrs['units'] = "degreesE"
+    lon.attrs['long_name'] = "Longitude"
+    lon.attrs['standard_name'] = "longitude"
+
+    lat.attrs['units'] = "degreesN"
+    lat.attrs['long_name'] = "Latitude"
+    lat.attrs['standard_name'] = "latitude"
+
+    ds = xr.Dataset()
+
+    ds['lon'] = lon
+    ds['lat'] = lat
+
+    ds['mapping'] = xr.DataArray(None)
+    ds['mapping'].attrs = dict(ellipsoid = inSpatialRef.GetAttrValue('GEOGCS').replace(" ", ""),
+                               false_easting = inSpatialRef.GetProjParm('false_easting'),
+                               false_northing = inSpatialRef.GetProjParm('false_northing'))
+
     name = inSpatialRef.GetAttrValue('PROJECTION')
     if "Lambert_Conformal_Conic" in name:
         name = 'lambert_conformal_conic'
-        mapping.grid_mapping_name = name ;
-        mapping.latitude_of_projection_origin = inSpatialRef.GetProjParm('latitude_of_origin') ;
-        mapping.longitude_of_central_meridian = inSpatialRef.GetProjParm('central_meridian') ;
-        mapping.standard_parallel = [inSpatialRef.GetProjParm('standard_parallel_1'), inSpatialRef.GetProjParm('standard_parallel_2')]
-        
+        ds['mapping'].attrs['grid_mapping_name'] = name ;
+        ds['mapping'].attrs['latitude_of_projection_origin'] = inSpatialRef.GetProjParm('latitude_of_origin') ;
+        ds['mapping'].attrs['longitude_of_central_meridian'] = inSpatialRef.GetProjParm('central_meridian') ;
+        ds['mapping'].attrs['standard_parallel'] = [inSpatialRef.GetProjParm('standard_parallel_1'), inSpatialRef.GetProjParm('standard_parallel_2')]
+
     elif "Stereographic" in name:
         name = 'polar_stereographic'
-        mapping.grid_mapping_name = name ;
+        ds['mapping'].attrs['grid_mapping_name'] = name ;
         lat0 = inSpatialRef.GetProjParm('latitude_of_origin') ;
         #Dirty fix...
         if lat0 > 0:
-            lat0 = 90;
+          lat0 = 90;
         else:
-            lat0 = -90;
-        mapping.latitude_of_projection_origin = lat0 ;
-        mapping.standard_parallel = inSpatialRef.GetProjParm('latitude_of_origin') ;
-        mapping.straight_vertical_longitude_from_pole = inSpatialRef.GetProjParm('central_meridian') ;
+          lat0 = -90;
+        ds['mapping'].attrs['latitude_of_projection_origin'] = lat0 ;
+        ds['mapping'].attrs['standard_parallel'] = inSpatialRef.GetProjParm('latitude_of_origin') ;
+        ds['mapping'].attrs['straight_vertical_longitude_from_pole'] = inSpatialRef.GetProjParm('central_meridian') ;
 
     elif "Lambert_Azimuthal_Equal_Area" in name:
         name = 'lambert_azimuthal_equal_area'
-        mapping.grid_mapping_name = name ;
-        mapping.longitude_of_projection_origin = inSpatialRef.GetProjParm('longitude_of_center') ;
-        mapping.latitude_of_projection_origin = inSpatialRef.GetProjParm('latitude_of_center') ;
-
-    outfile.proj4 = proj4
-
-    fvx = outfile.createVariable("x","f4",("x",))
-    fvy = outfile.createVariable("y","f4",("y",))
-    fvx[:] = x                                   
-    fvy[:] = y                                   
-    fvx.units = "m"
-    fvx.axis = "X"
-    fvy.units = "m"
-    fvy.axis = "Y"
-
-    lon = outfile.createVariable("lon","f4",("y","x"))
-    lat = outfile.createVariable("lat","f4",("y","x"))
-    ok_topg = outfile.createVariable("ocean_kill_topg" ,"f4",("y","x"))
-    ok_thk  = outfile.createVariable("ocean_kill_thk"  ,"f4",("y","x"))
-    ok_mask = outfile.createVariable("ocean_kill_mask" ,"i",("y","x"))
-
-    lon.units = "degreesE"
-    lon.long_name = "Longitude"
-    lon.standard_name = "longitude"
-
-    lat.units = "degreesN"
-    lat.long_name = "Latitude"
-    lat.standard_name = "latitude"
-
-    ok_topg.units = "m"
-    ok_topg.standard_name = "bedrock_altitude"
-    ok_topg.coordinates  = "lon lat"
-    ok_topg.grid_mapping = "mapping"
-
-    ok_thk.units = "m"
-    ok_thk.standard_name = "land_ice_thickness"
-    ok_thk.coordinates  = "lon lat"
-    ok_thk.grid_mapping = "mapping"
-
-    ok_mask.units = "1"
-    ok_mask.standard_name = "land_ice_area_fraction_retreat"
-    ok_mask.coordinates  = "lon lat"
-    ok_mask.grid_mapping = "mapping"
-
-    lon[:] = out[:,:,0]
-    lat[:] = out[:,:,1]
+        ds['mapping'].attrs['grid_mapping_name'] = name ;
+        ds['mapping'].attrs['longitude_of_projection_origin'] = inSpatialRef.GetProjParm('longitude_of_center') ;
+        ds['mapping'].attrs['latitude_of_projection_origin'] = inSpatialRef.GetProjParm('latitude_of_center') ;
 
     dx_margin = 1
 
-    thk_arr = np.ones(ok_thk.shape) * 100.
-    thk_arr[(np.arange(0,dx_margin), np.arange(-dx_margin, 0)), :] = 0.0
-    thk_arr[:, (np.arange(0,dx_margin), np.arange(-dx_margin, 0))] = 0.0
+    ds['ocean_kill_topg'] = xr.DataArray(np.ones_like(lon) * -1, 
+                                         dims=lon.dims,
+                                         attrs=dict(
+                                           units = 'm',
+                                           standard_name = "bedrock_altitude",
+                                           coordinates  = "lon lat",
+                                           grid_mapping = "mapping"
+                                         )
+                                        )
 
-    mask_arr = np.ones(ok_thk.shape)
-    mask_arr[(np.arange(0,dx_margin), np.arange(-dx_margin, 0)), :] = 0
-    mask_arr[:, (np.arange(0,dx_margin), np.arange(-dx_margin, 0))] = 0
+    tmp = np.ones_like(lon) * 100.
+    tmp[(np.arange(0,dx_margin), np.arange(-dx_margin, 0)), :] = 0.0
+    tmp[:, (np.arange(0,dx_margin), np.arange(-dx_margin, 0))] = 0.0
+    ds['ocean_kill_thk'] = xr.DataArray(tmp, 
+                                        dims=lon.dims,
+                                        attrs=dict(
+                                          units = 'm',
+                                          standard_name = "land_ice_thickness",
+                                          coordinates  = "lon lat",
+                                          grid_mapping = "mapping"
+                                        )
+                                       )
 
-    ok_topg[:] = -1
-    ok_thk[:]  = thk_arr[:,:]
-    ok_mask[:] = mask_arr[:,:]
-
-    outfile.close()
+    tmp = np.ones_like(lon, dtype=int)
+    tmp[(np.arange(0,dx_margin), np.arange(-dx_margin, 0)), :] = 0
+    tmp[:, (np.arange(0,dx_margin), np.arange(-dx_margin, 0))] = 0
+    ds['ocean_kill_mask'] = xr.DataArray(tmp, 
+                                         dims=lon.dims,
+                                         attrs=dict(
+                                           units = '1',
+                                           standard_name = "land_ice_area_fraction_retreat",
+                                           coordinates  = "lon lat",
+                                           grid_mapping = "mapping"
+                                         )
+                                        )
 #################
 
 
