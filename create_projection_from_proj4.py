@@ -1,11 +1,11 @@
-#!/usr/bin/env python                                                                                       
+#!/usr/bin/env python
 
 import osr
 import netCDF4 as nc
 import xarray as xr
-import numpy as np  
-import sys          
-import getopt       
+import numpy as np
+import sys
+import getopt
 from argparse import ArgumentParser
 
 
@@ -85,7 +85,7 @@ def create_projection (filename, proj4, xLim, yLim, dx, opts={}):
 
     dx_margin = 1
 
-    ds['ocean_kill_topg'] = xr.DataArray(np.ones_like(lon) * -1, 
+    ds['ocean_kill_topg'] = xr.DataArray(np.ones_like(lon) * -1,
                                          dims=lon.dims,
                                          attrs=dict(
                                            units = 'm',
@@ -111,15 +111,15 @@ def create_projection (filename, proj4, xLim, yLim, dx, opts={}):
     tmp = np.ones_like(lon, dtype=int)
     tmp[(np.arange(0,dx_margin), np.arange(-dx_margin, 0)), :] = 0
     tmp[:, (np.arange(0,dx_margin), np.arange(-dx_margin, 0))] = 0
-    ds['ocean_kill_mask'] = xr.DataArray(tmp, 
-                                         dims=lon.dims,
-                                         attrs=dict(
-                                           units = '1',
-                                           standard_name = "land_ice_area_fraction_retreat",
-                                           coordinates  = "lon lat",
-                                           grid_mapping = "mapping"
-                                         )
-                                        )
+    ds['land_ice_area_fraction_retreat'] = xr.DataArray(tmp,
+                                                        dims=lon.dims,
+                                                        attrs=dict(
+                                                        units = '1',
+                                                        standard_name = "land_ice_area_fraction_retreat",
+                                                        coordinates  = "lon lat",
+                                                        grid_mapping = "mapping"
+                                                       )
+                                                      )
 #################
 
 
