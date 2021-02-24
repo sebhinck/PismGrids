@@ -29,7 +29,7 @@ def create_projection (filename, proj4, xLim, yLim, dx, opts={}):
 
             return np.stack(res, axis=-1)
 
-        res = xr.apply_ufunc(f, xi, yi, vectorize=True, output_core_dims= [["q"]])
+        res = xr.apply_ufunc(f, xi, yi, vectorize=True, output_core_dims= [["q"]], dask='parallelized')
 
         lon = res.isel(q=0)
         lat = res.isel(q=1)
@@ -120,6 +120,8 @@ def create_projection (filename, proj4, xLim, yLim, dx, opts={}):
                                                         grid_mapping = "mapping"
                                                        )
                                                       )
+
+    ds.to_netcdf(filename)
 #################
 
 
