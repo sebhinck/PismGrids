@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import osr
-import netCDF4 as nc
 import xarray as xr
 import numpy as np
 import sys
