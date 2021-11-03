@@ -144,7 +144,7 @@ def main():
   options = parse_args()
   if options.verbose:
     print (dir(options))
-    print options.FILE
+    print (options.FILE)
 
   create_projection(options.FILE, options.proj4 ,options.x_lim, options.y_lim, options.dx, vars(options))
 
