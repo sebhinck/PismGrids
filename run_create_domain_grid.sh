@@ -65,6 +65,20 @@ case "$dom" in
     ymin=$(echo "$ymin_center - (0.5 * $dx)" | bc)
     ymax=$(echo "$ymax_center + (0.5 * $dx)" | bc)
   ;;
+  hanna)
+    #Reproduce grid from /home/ollie/haknahl/data/34M_icemask_JamiesonStep52.nc
+    # at 20km...
+    proj4="+proj=stere +lat_0=-90 +lat_ts=-71 +lon_0=0 +k=1 +x_0=3290000. +y_0=3290000. +ellps=WGS84 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
+    xmin_center=0
+    xmax_center=6560
+    ymin_center=0
+    ymax_center=6560
+
+    xmin=$(echo "$xmin_center - (0.5 * $dx)" | bc)
+    xmax=$(echo "$xmax_center + (0.5 * $dx)" | bc)
+    ymin=$(echo "$ymin_center - (0.5 * $dx)" | bc)
+    ymax=$(echo "$ymax_center + (0.5 * $dx)" | bc)
+  ;;
   himalaya)
     #Asia North Lambert Conformal Conic (ESRI:102027)
     proj4="+proj=lcc +lat_1=15 +lat_2=65 +lat_0=30 +lon_0=95 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs"
